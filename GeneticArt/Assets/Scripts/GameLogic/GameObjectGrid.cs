@@ -281,7 +281,7 @@ namespace AssemblyCSharp.Scripts.GameLogic
 
 				EntBehaviorManager manager = ent.GetComponent<EntBehaviorManager>();
 
-				if (StaticController.GlobalColorBlendDistance > 1)
+				if (StaticController.GlobalEnableColorBlend && StaticController.GlobalColorBlendDistance > 1)
 				{
 					manager.Reset(teamName, GetColorInRegion(position, StaticController.GlobalColorBlendDistance));
 				}

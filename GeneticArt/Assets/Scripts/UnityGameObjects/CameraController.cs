@@ -8,6 +8,7 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 	using System;
 
 	using AssemblyCSharp.Scripts.GameLogic;
+    using Assets.Scripts.Utilities;
 	using UnityEngine;
 
 	/// <summary>
@@ -86,6 +87,13 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 			{
 				this.transform.position += new Vector3(0.0f, ZoomDelta, 0.0f);
 			}
+
+            // Left click
+            if (Input.GetMouseButtonDown(0))
+            {
+                StaticController.GlobalEnableColorBlend = !StaticController.GlobalEnableColorBlend;
+                StaticController.GlobalShowDeath = !StaticController.GlobalShowDeath;
+            }
 		}
 	}
 }

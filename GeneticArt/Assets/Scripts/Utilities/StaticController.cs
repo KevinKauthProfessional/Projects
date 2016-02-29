@@ -22,6 +22,7 @@ namespace Assets.Scripts.Utilities
 		public int FramesPerIteration;
 		public int EnviornmentDamagePerTurn;
 		public int ColorBlendDistance;
+        public bool EnableColorBlend;
 		public int HeightBlendDistance;
 		public float ShapeHorizontalScale;
 		public bool ShowDeath;
@@ -34,7 +35,8 @@ namespace Assets.Scripts.Utilities
 		public static float GlobalMutationChance { get; private set; }
 		public static int GlobalEnviornmentDamagePerTurn { get; private set; }
 		public static int GlobalColorBlendDistance { get; private set; }
-		public static bool GlobalShowDeath { get; private set; }
+        public static bool GlobalEnableColorBlend { get; set; }
+		public static bool GlobalShowDeath { get; set; }
 		public static int GlobalHeightBlendDistance { get; private set; }
 		public static GameObject GlobalCreationPrefab { get; private set; }
 		public static float GlobalShapeHorizontalScale { get; private set; }
@@ -55,6 +57,7 @@ namespace Assets.Scripts.Utilities
 			GlobalHeightBlendDistance = this.HeightBlendDistance;
 			GlobalCreationPrefab = this.CreationPrefab;
 			GlobalShapeHorizontalScale = this.ShapeHorizontalScale;
+            GlobalEnableColorBlend = this.EnableColorBlend;
 
 			GameObjectGrid.InitializeToMatchScreenResolution();
 			CameraController.ResetMainCamera();
