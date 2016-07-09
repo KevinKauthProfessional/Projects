@@ -3,21 +3,19 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
-	using System.Collections.Generic;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
+    using AssemblyCSharp.Scripts.UnityGameObjects;
+    using Assets.Scripts.Utilities;
+    using System;
+    using System.Collections.Generic;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration;
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
-
-	/// <summary>
-	/// This class represents a statement that is read only returning a value of a given type
-	/// that is then delivered to a LeftStatement of some kind.
-	/// </summary>
-	internal class RightStatement
+    /// <summary>
+    /// This class represents a statement that is read only returning a value of a given type
+    /// that is then delivered to a LeftStatement of some kind.
+    /// </summary>
+    internal class RightStatement
 	{
 		public const string Name = "RightStatement";
 
@@ -26,27 +24,30 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		private ReadOnlyVariable readOnlyVariable = null;
 		private RightMethodCall rightMethodCall = null;
 		private LiteralValue literalValue = null;
+        private int depth;
 
 		/// <summary>
 		/// Initializes a new instance of the
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.RightStatement"/> class.
 		/// </summary>
 		/// <param name="returnType">Return type.</param>
-		public RightStatement(Type returnType)
+		public RightStatement(byte returnType, int depthIn)
 		{
-			if (returnType == null)
-			{
-				LogUtility.LogError("Cannot create right statement with null return type");
-			}
-
+            this.depth = depthIn;
 			double nextDouble = CommonHelperMethods.GetRandomDouble0To1();
+
+            if (depthIn >= RootStatement.MaxDepth)
+            {
+                // Force use of literal
+                nextDouble = 1.0;
+            }
 
 			if (nextDouble < 0.25) 
 			{
 				OperatorSignature signature;
 				if (RegistrationManager.TrySelectOperatorAtRandom(returnType, out signature))
 				{
-					this.rightStatementOperation = new RightStatementOperation(signature);
+					this.rightStatementOperation = new RightStatementOperation(signature, depthIn + 1);
 					return;
 				}
 			}
@@ -66,7 +67,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 				MethodSignature signature;
 				if (RegistrationManager.TrySelectRightMethodAtRandom(returnType, out signature))
 				{
-					this.rightMethodCall = new RightMethodCall(signature);
+					this.rightMethodCall = new RightMethodCall(signature, this.depth + 1);
 					return;
 				}
 			} 
@@ -80,35 +81,43 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.RightStatement"/> class.
 		/// </summary>
 		/// <param name="reader">Reader.</param>
-		public RightStatement (FileIOManager reader)
+		public RightStatement(FileIOManager reader, int depthIn)
 		{
-			string nextLine = reader.ReadNextContentLineAndTrim (); 
-			if (CommonHelperMethods.StringStartsWith (nextLine, RightStatementOperation.Name))
+            this.depth = depthIn;
+
+            byte nextByte = reader.ReadByte();
+			if (nextByte == StatementTypeEnum.RightStatementOperation)
 			{
-				this.rightStatementOperation = new RightStatementOperation (reader);
+				this.rightStatementOperation = new RightStatementOperation(reader, depthIn + 1);
 			} 
-			else if (CommonHelperMethods.StringStartsWith (nextLine, ReadOnlyVariable.Name))
+			else if (nextByte == StatementTypeEnum.ReadOnlyVariable)
 			{
-				this.readOnlyVariable = new ReadOnlyVariable (reader);
+				this.readOnlyVariable = new ReadOnlyVariable(reader);
 			} 
-			else if (CommonHelperMethods.StringStartsWith (nextLine, RightMethodCall.Name)) 
+			else if (nextByte == StatementTypeEnum.RightMethodCall) 
 			{
-				this.rightMethodCall = new RightMethodCall (reader);
+				this.rightMethodCall = new RightMethodCall(reader, depthIn + 1);
 			} 
-			else if (CommonHelperMethods.StringStartsWith (nextLine, LiteralValue.Name))
+			else if (nextByte == StatementTypeEnum.LiteralValue)
 			{
 				this.literalValue = new LiteralValue(reader);
 			}
 			else
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine,
+					nextByte,
 					reader,
-					new List<string>() { RightStatementOperation.Name, ReadOnlyVariable.Name, RightMethodCall.Name });
+					new List<byte>()
+                    {
+                        StatementTypeEnum.RightStatementOperation,
+                        StatementTypeEnum.ReadOnlyVariable,
+                        StatementTypeEnum.RightMethodCall,
+                        StatementTypeEnum.LiteralValue
+                    });
 			}
 		}
 
-		public Type ReturnType
+		public byte ReturnType
 		{
 			get
 			{
@@ -129,7 +138,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 					return this.readOnlyVariable.VariableType;
 				}
 
-				return null;
+				return 0;
 			}
 		}
 
@@ -164,29 +173,28 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public void WriteToDisk(FileIOManager writer, int tabDepth)
+		public void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (RightStatement.Name, tabDepth));
+            writer.WriteByte(StatementTypeEnum.RightStatement);
 
 			if (this.rightStatementOperation != null) 
 			{
-				this.rightStatementOperation.WriteToDisk(writer, tabDepth + 1);
+				this.rightStatementOperation.WriteToDisk(writer);
 			}
 
 			if (this.readOnlyVariable != null) 
 			{
-				this.readOnlyVariable.WriteToDisk(writer, tabDepth + 1);
+				this.readOnlyVariable.WriteToDisk(writer);
 			}
 
 			if (this.rightMethodCall != null) 
 			{
-				this.rightMethodCall.WriteToDisk(writer, tabDepth + 1);
+				this.rightMethodCall.WriteToDisk(writer);
 			}
 
 			if (this.literalValue != null) 
 			{
-				this.literalValue.WriteToDisk(writer, tabDepth + 1);
+				this.literalValue.WriteToDisk(writer);
 			}
 		}
 
@@ -200,7 +208,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 				OperatorSignature signature;
 				if (RegistrationManager.TrySelectOperatorAtRandom(this.ReturnType, out signature))
 				{
-					this.rightStatementOperation = new RightStatementOperation(signature);
+					this.rightStatementOperation = new RightStatementOperation(signature, this.depth + 1);
 					this.readOnlyVariable = null;
 					this.rightMethodCall = null;
 					this.literalValue = null;
@@ -228,7 +236,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 				{
 					this.rightStatementOperation = null;
 					this.readOnlyVariable = null;
-					this.rightMethodCall = new RightMethodCall(signature);
+					this.rightMethodCall = new RightMethodCall(signature, this.depth + 1);
 					this.literalValue = null;
 					return;
 				}
@@ -254,9 +262,9 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Evaluate the specified instance.
 		/// </summary>
 		/// <param name="instance">Instance.</param>
-		public GeneticObject Evaluate(ref EntBehaviorManager instance)
+		public byte Evaluate(ref EntBehaviorManager instance)
 		{
-			this.EnforceOneFieldIsNonNull ();
+			this.EnforceOneFieldIsNonNull();
 
 			if (this.rightStatementOperation != null) 
 			{

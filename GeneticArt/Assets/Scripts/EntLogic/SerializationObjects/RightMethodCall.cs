@@ -3,40 +3,40 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
-	using System.Collections.Generic;
-	
-	using AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration;
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
+    using AssemblyCSharp.Scripts.UnityGameObjects;
+    using Assets.Scripts.Utilities;
+    using System;
+    using System.Collections.Generic;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
 
-	/// <summary>
-	/// This class represents calling a method that is read only on game state
-	/// and returns some information.  It is useful for giving the genetic logic
-	/// access to basic calculations that it can't screw up via mutation.
-	/// </summary>
-	internal class RightMethodCall
+    /// <summary>
+    /// This class represents calling a method that is read only on game state
+    /// and returns some information.  It is useful for giving the genetic logic
+    /// access to basic calculations that it can't screw up via mutation.
+    /// </summary>
+    internal class RightMethodCall
 	{
 		public const string Name = "RightMethodCall";
 
 		protected MethodSignature signature;
 		protected List<RightStatement> parameterList = new List<RightStatement> ();
+        protected int depth;
 
 		/// <summary>
 		/// Initializes a new instance of the
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.RightMethodCall"/> class.
 		/// </summary>
 		/// <param name="signatureIn">Signature in.</param>
-		public RightMethodCall(MethodSignature signatureIn)
+		public RightMethodCall(MethodSignature signatureIn, int depthIn)
 		{
+            this.depth = depthIn;
 			this.signature = signatureIn;
 
-			foreach (Type returnType in signatureIn.ParameterTypes) 
+			foreach (byte returnType in signatureIn.ParameterTypes) 
 			{
-				this.parameterList.Add(new RightStatement(returnType));
+				this.parameterList.Add(new RightStatement(returnType, depthIn + 1));
 			}
 		}
 
@@ -45,21 +45,29 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.RightMethodCall"/> class.
 		/// </summary>
 		/// <param name="reader">Reader.</param>
-		public RightMethodCall (FileIOManager reader)
+		public RightMethodCall(FileIOManager reader, int depthIn)
 		{
-			this.signature = new MethodSignature (reader);
+            this.depth = depthIn;
 
+            byte nextByte = reader.ReadByte();
+            if (nextByte != StatementTypeEnum.MethodSignature)
+            {
+                CommonHelperMethods.ThrowStatementParseException(nextByte, reader, StatementTypeEnum.MethodSignature);
+            }
+
+            this.signature = new MethodSignature(reader);
+            
 			for (int i = 0; i < this.signature.ParameterTypes.Count; ++i)
 			{
-				string nextLine = reader.ReadNextContentLineAndTrim ();
-				if (CommonHelperMethods.StringStartsWith(nextLine, RightStatement.Name))
+				nextByte = reader.ReadByte();
+				if (nextByte == StatementTypeEnum.RightStatement)
 				{
-					this.parameterList.Add(new RightStatement(reader));
+					this.parameterList.Add(new RightStatement(reader, depthIn + 1));
 				}
 			}
 		}
 
-		public Type ReturnType
+		public byte ReturnType
 		{
 			get
 			{
@@ -68,7 +76,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 					return this.signature.ReturnType;
 				}
 
-				return null;
+				return 0;
 			}
 		}
 
@@ -86,24 +94,23 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public virtual void WriteToDisk(FileIOManager writer, int tabDepth)
+		public virtual void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (RightMethodCall.Name, tabDepth));
-			this.WriteToDiskProtected (writer, tabDepth + 1);
+            writer.WriteByte(StatementTypeEnum.RightMethodCall);
+			this.WriteToDiskProtected(writer);
 		}
 
-		protected void WriteToDiskProtected(FileIOManager writer, int tabDepth)
+		protected void WriteToDiskProtected(FileIOManager writer)
 		{
 			if (this.signature != null) 
 			{
-				this.signature.WriteToDisk(writer, tabDepth);
+				this.signature.WriteToDisk(writer);
 			}
 
 			if (this.parameterList != null) 
-				foreach(RightStatement parameter in this.parameterList)
+			foreach(RightStatement parameter in this.parameterList)
 			{
-				parameter.WriteToDisk(writer, tabDepth);
+				parameter.WriteToDisk(writer);
 			}
 		}
 
@@ -112,9 +119,9 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// </summary>
 		/// <returns>The return value of the method.</returns>
 		/// <param name="instance">The instance to execute against.</param>
-		public virtual GeneticObject Execute(ref EntBehaviorManager instance)
+		public virtual byte Execute(ref EntBehaviorManager instance)
 		{
-			return instance.ExecuteRightMethod (this.signature, this.EvaluateParameters (ref instance));
+			return instance.ExecuteRightMethod(this.signature, this.EvaluateParameters(ref instance));
 		}
 
 		/// <summary>
@@ -122,9 +129,9 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// </summary>
 		/// <returns>The parameters.</returns>
 		/// <param name="instance">Instance.</param>
-		protected IList<GeneticObject> EvaluateParameters(ref EntBehaviorManager instance)
+		protected IList<byte> EvaluateParameters(ref EntBehaviorManager instance)
 		{
-			List<GeneticObject> result = new List<GeneticObject> ();
+			List<byte> result = new List<byte>();
 
 			foreach (RightStatement rightStatement in this.parameterList) 
 			{

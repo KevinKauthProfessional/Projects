@@ -3,37 +3,51 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
+    using Assets.Scripts.Utilities;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
+    using System;
+    using AssemblyCSharp.Scripts.GameLogic;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
-
-	/// <summary>
-	/// This class represents a literal value.
-	/// </summary>
-	public class LiteralValue
+    /// <summary>
+    /// This class represents a literal value.
+    /// </summary>
+    public class LiteralValue
 	{
 		public const string Name = "LiteralValue";
 
-		private Type type = null;
-		private GeneticObject value = null;
+		private byte type;
+		private byte value;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.LiteralValue"/> class.
 		/// </summary>
 		/// <param name="returnType">Return type.</param>
-		public LiteralValue(Type returnType)
+		public LiteralValue(byte returnType)
 		{
-			if (returnType == null)
-			{
-				LogUtility.LogError("Cannot create literal value with null return type");
-			}
-
 			this.type = returnType;
-			this.value = GeneticObject.CreateTypeAtRandom (this.type);
+            byte randomByte = CommonHelperMethods.GetRandomByte(); ;
+
+            switch (returnType)
+            {
+                case GeneticTypeEnum.GeneticBool:
+                    this.value = (byte)(randomByte & 1);
+                    break;
+
+                case GeneticTypeEnum.GeneticGridDirection:
+                    this.value = (byte)CommonHelperMethods.GetRandomPositiveInt0ToValue(
+                        GridDirectionEnum.Count - 1);
+                    break;
+
+                case GeneticTypeEnum.GeneticInt:
+                    this.value = randomByte;
+                    break;
+
+                default:
+                    throw new NotImplementedException(
+                        string.Format("No support for object type: {0}", returnType));
+            }
 		}
 
 		/// <summary>
@@ -42,18 +56,15 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <param name="reader">Reader.</param>
 		public LiteralValue (FileIOManager reader)
 		{
-			string nextLine = reader.ReadNextContentLineAndTrim ();
-			this.type = GeneticObject.ParseType(nextLine);
-
-			nextLine = reader.ReadNextContentLineAndTrim ();
-			this.value = GeneticObject.ParseValue (this.type, nextLine);
+            this.type = reader.ReadByte();
+            this.value = reader.ReadByte();
 		}
 
 		/// <summary>
 		/// Gets the type of the variable.
 		/// </summary>
 		/// <value>The type of the variable.</value>
-		public Type VariableType
+		public byte VariableType
 		{
 			get
 			{
@@ -65,7 +76,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Gets the value.
 		/// </summary>
 		/// <value>The value.</value>
-		public GeneticObject Value
+		public byte Value
 		{
 			get
 			{
@@ -87,20 +98,11 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public void WriteToDisk(FileIOManager writer, int tabDepth)
+		public void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (Name, tabDepth));
-
-			if (this.type != null) 
-			{
-				writer.WriteLine(CommonHelperMethods.PrePendTabs(this.type.ToString(), tabDepth + 1));
-			}
-
-			if (this.value != null) 
-			{
-				writer.WriteLine(CommonHelperMethods.PrePendTabs(this.value.ToString(), tabDepth + 1));
-			}
+            writer.WriteByte(StatementTypeEnum.LiteralValue);
+            writer.WriteByte(this.type);
+            writer.WriteByte(this.value);
 		}
 	}
 }

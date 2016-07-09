@@ -33,7 +33,7 @@ namespace Assets.Scripts.Utilities
 		public static int GlobalMaxInt { get; private set; }
 		public static bool GlobalForceFlat { get; private set; }
 		public static float GlobalMutationChance { get; private set; }
-		public static int GlobalEnviornmentDamagePerTurn { get; private set; }
+		public static byte GlobalEnviornmentDamagePerTurn { get; private set; }
 		public static int GlobalColorBlendDistance { get; private set; }
         public static bool GlobalEnableColorBlend { get; set; }
 		public static bool GlobalShowDeath { get; set; }
@@ -47,7 +47,21 @@ namespace Assets.Scripts.Utilities
 		// Use this for initialization
 		void Start () 
 		{
-			GlobalEnviornmentDamagePerTurn = this.EnviornmentDamagePerTurn;
+            Application.runInBackground = true;
+
+            if (this.EnviornmentDamagePerTurn > byte.MaxValue)
+            {
+                GlobalEnviornmentDamagePerTurn = byte.MaxValue;
+            }
+            else if (this.EnviornmentDamagePerTurn < byte.MinValue)
+            {
+                GlobalEnviornmentDamagePerTurn = byte.MinValue;
+            }
+            else
+            {
+                GlobalEnviornmentDamagePerTurn = (byte)this.EnviornmentDamagePerTurn;
+            }
+
 			GlobalMutationChance = this.MutationChance;
 			GlobalMaxInt = this.MaxInt;
 			GlobalMaxHeight = this.MaxHeight;

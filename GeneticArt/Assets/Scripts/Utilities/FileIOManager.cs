@@ -2,13 +2,11 @@
 
 namespace Assets.Scripts.Utilities
 {
+    using Assets.Scripts.EntLogic.SerializationObjects;
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Text;
-    using AssemblyCSharp.Scripts.EntLogic.SerializationObjects;
-    using Assets.Scripts.Utilities;    
     using UnityEngine;
 
     /// <summary>
@@ -19,33 +17,34 @@ namespace Assets.Scripts.Utilities
         public const string DNAFileExtension = ".dna";
         private const string GenePoolDirectoryName = "GenePool";
 
-        private static Dictionary<string, List<RootStatement>> statementDictionary = new Dictionary<string, List<RootStatement>>();
+        private static Dictionary<string, List<byte>> fileCacheDictionary =
+            new Dictionary<string, List<byte>>();
+        private List<byte> fileCache;
+        private int readPosition;
 
-        private StreamWriter writer = null;
-        private CustomFileReader reader = null;
+        private FileStream stream;
+        private static string diskOutputDirectory;
 
-        private FileIOManager(FileInfo fileOnDisk, bool read)
+        public FileIOManager(string fileName)
         {
-            this.FileName = fileOnDisk.FullName;
+            this.FileName = fileName;
 
-            if (read)
+            if (DiskUsePermitted)
             {
-                if (!fileOnDisk.Exists)
-                {
-                    // Better than File.Create as the dispose will release system holds on the file that may linger
-                    StreamWriter creationWriter = new StreamWriter(fileOnDisk.FullName);
-                    creationWriter.Dispose();
-                }
-
-                this.reader = new CustomFileReader(fileOnDisk.FullName);
+                this.stream = File.Open(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
             }
             else
             {
-                this.writer = new StreamWriter(fileOnDisk.FullName);
+                if (!fileCacheDictionary.ContainsKey(fileName))
+                {
+                    fileCacheDictionary.Add(fileName, new List<byte>());
+                }
+
+                this.fileCache = fileCacheDictionary[fileName];
             }
         }
 
-        public static bool DiskUsePermitted
+        private static bool DiskUsePermitted
         {
             get
             {
@@ -54,87 +53,66 @@ namespace Assets.Scripts.Utilities
             }
         }
 
-        public string FileName { get; private set; }
+        private static string DiskOutputDirectory
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(diskOutputDirectory))
+                {
+                    diskOutputDirectory = Path.Combine(Application.persistentDataPath, GenePoolDirectoryName);
+                    Console.WriteLine("Gene file output directory: {0}", diskOutputDirectory);
+                }
+
+                return diskOutputDirectory;
+            }
+        }
 
         public bool EndOfStream
         {
             get
             {
-                lock (CommonHelperMethods.GlobalFileIOLock)
+                if (DiskUsePermitted)
                 {
-                    return this.reader.EndOfStream;
+                    return this.stream.Length == this.stream.Position;
+                }
+                else
+                {
+                    return this.readPosition == this.fileCache.Count;
                 }
             }
         }
 
-        public int LineNumber
-        {
-            get
-            {
-                return this.reader.LineNumber;
-            }
-        }
+        public string FileName { get; private set; }
 
-        public string ReadLine()
+        public byte ReadByte()
         {
             lock (CommonHelperMethods.GlobalFileIOLock)
             {
-                return this.reader.ReadLine();
+                if (DiskUsePermitted)
+                {
+                    return (byte)this.stream.ReadByte();
+                }
+                else
+                {
+                    byte result = this.fileCache[this.readPosition];
+                    this.readPosition++;
+                    return result;
+                }
             }
         }
 
-        public string ReadNextContentLineAndTrim()
+        public void WriteByte(byte value)
         {
             lock (CommonHelperMethods.GlobalFileIOLock)
             {
-                return this.reader.ReadNextContentLineAndTrim();
-            }
-        }
-
-        public void WriteLine(string line)
-        {
-            lock (CommonHelperMethods.GlobalFileIOLock)
-            {
-                 this.writer.WriteLine(line);
-            }
-        }
-
-        public static FileIOManager OpenDiskFileForRead(string fileName)
-        {
-            lock (CommonHelperMethods.GlobalFileIOLock)
-            {
-                return OpenFile(fileName, true);
-            }
-        }
-
-        public static FileIOManager OpenDiskFileForWrite(string fileName)
-        {
-            lock (CommonHelperMethods.GlobalFileIOLock)
-            {
-                return OpenFile(fileName, false);
-            }
-        }
-
-        public static List<RootStatement> ReadNonDiskFile(string fileName)
-        {
-            List<RootStatement> result;
-            if (statementDictionary.TryGetValue(fileName, out result))
-            {
-                return new List<RootStatement>(result);
-            }
-
-            return new List<RootStatement>();
-        }
-
-        public static void WriteNonDiskFile(string fileName, List<RootStatement> statementList)
-        {
-            if (!statementDictionary.ContainsKey(fileName))
-            {
-                statementDictionary.Add(fileName, statementList);
-            }
-            else
-            {
-                statementDictionary[fileName] = new List<RootStatement>(statementList);
+                if (DiskUsePermitted)
+                {
+                    this.stream.WriteByte(value);
+                }
+                else
+                {
+                    this.fileCache.Add(value);
+                }
             }
         }
 
@@ -172,13 +150,13 @@ namespace Assets.Scripts.Utilities
         {
             lock (CommonHelperMethods.GlobalFileIOLock)
             {
-                if (!DiskUsePermitted)
+                if (DiskUsePermitted)
                 {
-                    statementDictionary.Remove(fileName);
+                    File.Delete(fileName);
                 }
                 else
                 {
-                    File.Delete(fileName);
+                    fileCacheDictionary.Remove(fileName);
                 }
             }
         }
@@ -187,18 +165,18 @@ namespace Assets.Scripts.Utilities
         {
             lock (CommonHelperMethods.GlobalFileIOLock)
             {
-                if (!DiskUsePermitted)
+                if (DiskUsePermitted)
                 {
-                    List<RootStatement> statementList;
-                    if (statementDictionary.TryGetValue(oldFileName, out statementList))
-                    {
-                        statementDictionary.Remove(oldFileName);
-                        statementDictionary.Add(newFileName, statementList);
-                    }
+                    File.Move(oldFileName, newFileName);
                 }
                 else
                 {
-                    File.Move(oldFileName, newFileName);
+                    List<byte> cacheData;
+                    if (fileCacheDictionary.TryGetValue(oldFileName, out cacheData))
+                    {
+                        fileCacheDictionary.Remove(oldFileName);
+                        fileCacheDictionary.Add(newFileName, cacheData);
+                    }
                 }
             }
         }
@@ -209,11 +187,7 @@ namespace Assets.Scripts.Utilities
             {
                 List<string> resultList = new List<string>();
 
-                if (!DiskUsePermitted)
-                {
-                    resultList.AddRange(statementDictionary.Keys.ToList());
-                }
-                else
+                if (DiskUsePermitted)
                 {
                     DirectoryInfo genePoolDirectory = GetGenePoolDirectoryInfo();
                     foreach (FileInfo file in genePoolDirectory.GetFiles())
@@ -221,16 +195,13 @@ namespace Assets.Scripts.Utilities
                         resultList.Add(file.FullName);
                     }
                 }
+                else
+                {
+                    resultList.AddRange(fileCacheDictionary.Keys.ToList());
+                }
 
                 return resultList;
             }
-        }
-
-        private static FileIOManager OpenFile(string fileName, bool read)
-        {
-            // Read and write to disk
-            FileInfo fileOnDisk = new FileInfo(fileName);
-            return new FileIOManager(fileOnDisk, read);
         }
 
         /// <summary>
@@ -239,7 +210,7 @@ namespace Assets.Scripts.Utilities
         /// <returns>The gene pool directory info.</returns>
         private static DirectoryInfo GetGenePoolDirectoryInfo()
         {
-            string path = Path.Combine(Application.persistentDataPath, GenePoolDirectoryName);
+            string path = DiskOutputDirectory;
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
@@ -264,16 +235,10 @@ namespace Assets.Scripts.Utilities
             if (disposing) 
             {
                 // free managed resources
-                if (this.reader != null)
+                if (this.stream != null)
                 {
-                    this.reader.Dispose();
-                    this.reader = null;
-                }
-
-                if (this.writer != null)
-                {
-                    this.writer.Dispose();
-                    this.writer = null;
+                    this.stream.Dispose();
+                    this.stream = null;
                 }
             }
         }

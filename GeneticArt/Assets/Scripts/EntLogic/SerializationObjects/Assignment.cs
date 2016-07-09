@@ -3,66 +3,68 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
+    using AssemblyCSharp.Scripts.UnityGameObjects;
+    using Assets.Scripts.Utilities;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
-	
-	/// <summary>
-	/// A class representing the assignment operation.
-	/// </summary>
-	internal class Assignment
+    /// <summary>
+    /// A class representing the assignment operation.
+    /// </summary>
+    internal class Assignment
 	{
 		public const string Name = "Assignment";
 
 		// Both parsed and populated
 		private ReadWriteVariable readWriteVariable = null;
 		private RightStatement rightStatement = null;
+        private int depth;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.Assignment"/> class.
 		/// </summary>
-		public Assignment()
+		public Assignment(int depthIn)
 		{
+            this.depth = depthIn;
 			VariableSignature signature = RegistrationManager.SelectReadWriteVariableAtRandom ();
 
-			this.readWriteVariable = new ReadWriteVariable (signature);
-			this.rightStatement = new RightStatement (signature.VariableType);
+			this.readWriteVariable = new ReadWriteVariable(signature);
+			this.rightStatement = new RightStatement(signature.VariableType, depthIn + 1);
 		}
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.Assignment"/> class.
 		/// </summary>
 		/// <param name="reader">Reader.</param>
-		public Assignment (FileIOManager reader)
+		public Assignment (FileIOManager reader, int depthIn)
 		{
-			string nextLine = reader.ReadNextContentLineAndTrim ();
-			if (CommonHelperMethods.StringStartsWith (nextLine, ReadWriteVariable.Name)) 
+            this.depth = depthIn;
+
+            byte nextByte = reader.ReadByte();
+			if (nextByte == StatementTypeEnum.ReadWriteVariable) 
 			{
 				this.readWriteVariable = new ReadWriteVariable(reader);
 			} 
 			else 
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine,
+					nextByte,
 					reader,
-					ReadWriteVariable.Name);
+					StatementTypeEnum.ReadWriteVariable);
 			}
 
-			nextLine = reader.ReadNextContentLineAndTrim ();
-			if (CommonHelperMethods.StringStartsWith (nextLine, RightStatement.Name)) 
+            nextByte = reader.ReadByte();
+			if (nextByte == StatementTypeEnum.RightStatement) 
 			{
-				this.rightStatement = new RightStatement (reader);
+				this.rightStatement = new RightStatement(reader, depthIn + 1);
 			} 
 			else 
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine,
+					nextByte,
 					reader,
-					RightStatement.Name);
+					StatementTypeEnum.RightStatement);
 			}
 		}
 
@@ -80,19 +82,18 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public void WriteToDisk(FileIOManager writer, int tabDepth)
+		public void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (Assignment.Name, tabDepth));
+            writer.WriteByte(StatementTypeEnum.Assignment);
 
 			if (this.readWriteVariable != null) 
 			{
-				this.readWriteVariable.WriteToDisk(writer, tabDepth + 1);
+				this.readWriteVariable.WriteToDisk(writer);
 			}
 
 			if (this.rightStatement != null) 
 			{
-				this.rightStatement.WriteToDisk(writer, tabDepth + 1);
+				this.rightStatement.WriteToDisk(writer);
 			}
 		}
 
@@ -105,13 +106,13 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 			{
 				VariableSignature signature = RegistrationManager.SelectReadWriteVariableAtRandom();
 				this.readWriteVariable = new ReadWriteVariable(signature);
-				this.rightStatement = new RightStatement(signature.VariableType);
+				this.rightStatement = new RightStatement(signature.VariableType, this.depth + 1);
 				return;
 			}
 
 			if (this.rightStatement != null) 
 			{
-				this.rightStatement.PossiblyMutate ();
+				this.rightStatement.PossiblyMutate();
 			}
 		}
 
@@ -121,7 +122,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <param name="instance">The instance to evaluate against.</param>
 		public void Execute(ref EntBehaviorManager instance)
 		{
-			this.readWriteVariable.WriteToVariable (ref instance, this.rightStatement);
+			this.readWriteVariable.WriteToVariable(ref instance, this.rightStatement);
 		}
 	}
 }

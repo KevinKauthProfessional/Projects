@@ -3,34 +3,33 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
+    using AssemblyCSharp.Scripts.UnityGameObjects;
+    using Assets.Scripts.Utilities;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
-
-	/// <summary>
-	/// This class represents a "conditional left statement".  That means a Condition
-	/// which if true will result in the execution of a LeftStatement at run time.
-	/// </summary>
-	internal class ConditionalLeftStatement
+    /// <summary>
+    /// This class represents a "conditional left statement".  That means a Condition
+    /// which if true will result in the execution of a LeftStatement at run time.
+    /// </summary>
+    internal class ConditionalLeftStatement
 	{
 		public const string Name = "ConditionalLeftStatement";
 
 		// Both parsed and populated
 		private Condition condition;
 		private LeftStatement leftStatement;
+        private int depth;
 
 		/// <summary>
 		/// Initializes a new instance of the
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.ConditionalLeftStatement"/> class.
 		/// </summary>
-		public ConditionalLeftStatement()
+		public ConditionalLeftStatement(int depthIn)
 		{
-			this.condition = new Condition ();
-			this.leftStatement = new LeftStatement ();
+            this.depth = depthIn;
+			this.condition = new Condition(depthIn + 1);
+			this.leftStatement = new LeftStatement(depthIn + 1);
 		}
 
 		/// <summary>
@@ -38,34 +37,36 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.ConditionalLeftStatement"/> class.
 		/// </summary>
 		/// <param name="reader">Reader.</param>
-		public ConditionalLeftStatement (FileIOManager reader)
+		public ConditionalLeftStatement (FileIOManager reader, int depthIn)
 		{
+            this.depth = depthIn;
+
 			// Condition block parse
-			string nextLine = reader.ReadNextContentLineAndTrim ();
-			if (CommonHelperMethods.StringStartsWith (nextLine, Condition.Name)) 
+			byte nextByte = reader.ReadByte();
+			if (nextByte == StatementTypeEnum.Condition) 
 			{
-				this.condition = new Condition(reader);
+				this.condition = new Condition(reader, depthIn + 1);
 			} 
 			else
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine,
+					nextByte,
 					reader,
-					Condition.Name);
+					StatementTypeEnum.Condition);
 			}
 
 			// LeftStatement block parse
-			nextLine = reader.ReadNextContentLineAndTrim ();
-			if (CommonHelperMethods.StringStartsWith (nextLine, LeftStatement.Name)) 
+			nextByte = reader.ReadByte();
+			if (nextByte == StatementTypeEnum.LeftStatement) 
 			{
-				this.leftStatement = new LeftStatement (reader);
+				this.leftStatement = new LeftStatement(reader, depthIn + 1);
 			} 
 			else 
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine,
+					nextByte,
 					reader,
-					LeftStatement.Name);
+					StatementTypeEnum.LeftStatement);
 			}
 		}
 
@@ -83,19 +84,18 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public void WriteToDisk(FileIOManager writer, int tabDepth)
+		public void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (ConditionalLeftStatement.Name, tabDepth));
+            writer.WriteByte(StatementTypeEnum.ConditionalLeftStatement);
 
 			if (this.condition != null) 
 			{
-				this.condition.WriteToDisk(writer, tabDepth + 1);
+				this.condition.WriteToDisk(writer);
 			}
 
 			if (this.leftStatement != null) 
 			{
-				this.leftStatement.WriteToDisk(writer, tabDepth + 1);
+				this.leftStatement.WriteToDisk(writer);
 			}
 		}
 
@@ -106,8 +106,8 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		{
 			if (GeneticLogicRoot.RollMutateDice ()) 
 			{
-				this.condition = new Condition();
-				this.leftStatement = new LeftStatement();
+				this.condition = new Condition(this.depth + 1);
+				this.leftStatement = new LeftStatement(this.depth + 1);
 				return;
 			}
 
@@ -126,16 +126,16 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Evaluates the Condition, and if true, executes the LeftStatement.
 		/// </summary>
 		/// <param name="instance">The instance to execute against.</param>
-		public bool Execute(ref EntBehaviorManager instance)
+		public byte Execute(ref EntBehaviorManager instance)
 		{
-			GeneticBool condition = this.condition.Evaluate (ref instance);
+			byte condition = this.condition.Evaluate(ref instance);
 
-			if ((bool)condition.Value) 
+			if (condition == 1) 
 			{
-				return this.leftStatement.Execute (ref instance);
+				return this.leftStatement.Execute(ref instance);
 			}
 
-			return false;
+			return condition;
 		}
 	}
 }

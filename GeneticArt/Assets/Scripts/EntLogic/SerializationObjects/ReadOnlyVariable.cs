@@ -3,20 +3,18 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
+    using AssemblyCSharp.Scripts.UnityGameObjects;
+    using Assets.Scripts.Utilities;
+    using System;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration;
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
-
-	/// <summary>
-	/// This class represents a variable belonging to an object with genetic logic
-	/// that is read only to the genetic logic in that object.
-	/// </summary>
-	internal class ReadOnlyVariable
+    /// <summary>
+    /// This class represents a variable belonging to an object with genetic logic
+    /// that is read only to the genetic logic in that object.
+    /// </summary>
+    internal class ReadOnlyVariable
 	{
 		public const string Name = "ReadOnlyVariable";
 
@@ -37,7 +35,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 			this.signature = new VariableSignature (reader);
 		}
 
-		public Type VariableType
+		public byte VariableType
 		{
 			get
 			{
@@ -46,7 +44,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 					return this.signature.VariableType;
 				}
 
-				return null;
+				return 0;
 			}
 		}
 
@@ -64,11 +62,10 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public virtual void WriteToDisk(FileIOManager writer, int tabDepth)
+		public virtual void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (ReadOnlyVariable.Name, tabDepth));
-			this.WriteToDiskProtected (writer, tabDepth + 1);
+            writer.WriteByte(StatementTypeEnum.ReadOnlyVariable);
+			this.WriteToDiskProtected(writer);
 		}
 
 		/// <summary>
@@ -76,11 +73,11 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// </summary>
 		/// <param name="writer">Writer.</param>
 		/// <param name="tabDepth">Tab depth.</param>
-		protected void WriteToDiskProtected(FileIOManager writer, int tabDepth)
+		protected void WriteToDiskProtected(FileIOManager writer)
 		{
 			if (this.signature != null) 
 			{
-				this.signature.WriteToDisk(writer, tabDepth);
+				this.signature.WriteToDisk(writer);
 			}
 		}
 
@@ -88,7 +85,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Evaluates the variable's value.
 		/// </summary>
 		/// <param name="instance">The instance to evaluate against.</param>
-		public virtual GeneticObject Evaluate(ref EntBehaviorManager instance)
+		public virtual byte Evaluate(ref EntBehaviorManager instance)
 		{
 			return instance.ReadFromVariable (this.signature);
 		}

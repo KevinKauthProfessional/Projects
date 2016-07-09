@@ -6,17 +6,17 @@
 namespace AssemblyCSharp.Scripts.UnityGameObjects
 {
 	using System;
-	public enum EntVariableEnum
+	public static class EntVariableEnum
 	{
-		Health,
-		AttackStrength,
-		GrowFoodStrength,
-		HelperInt1,
-		HelperInt2,
-		HelperBool1,
-		HelperBool2,
-		HelperGridDirection1,
-		HelperGridDirection2,
+        public const byte Health = 0;
+        public const byte AttackStrength = 1;
+        public const byte GrowFoodStrength = 2;
+        public const byte HelperInt1 = 3;
+        public const byte HelperInt2 = 4;
+        public const byte HelperBool1 = 5;
+        public const byte HelperBool2 = 6;
+        public const byte HelperGridDirection1 = 7;
+        public const byte HelperGridDirection2 = 8;
 	}
 }
 

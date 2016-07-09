@@ -3,7 +3,7 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
+namespace Assets.Scripts.EntLogic.GeneticMemberRegistration
 {
 	using System;
 	using System.Collections.Generic;
@@ -61,7 +61,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// <param name="returnType">Return type.</param>
 		/// <param name="signatureOut">Signature out.</param>
 		public static bool TrySelectRightMethodAtRandom(
-			Type returnType,
+			byte returnType,
 			out MethodSignature signatureOut)
 		{
 			if (rightMethodList == null) 
@@ -96,7 +96,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// <param name="returnType">Return type.</param>
 		/// <param name="signatureOut">Signature out.</param>
 		public static bool TrySelectReadOnlyVariableAtRandom(
-			Type returnType,
+			byte returnType,
 			out VariableSignature signatureOut)
 		{
 			if (readOnlyVariableList == null) 
@@ -138,7 +138,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// <returns>The operator.</returns>
 		/// <param name="returnType">Return type of the operator.</param>
 		public static bool TrySelectOperatorAtRandom(
-			Type returnType,
+			byte returnType,
 			out OperatorSignature signatureOut)
 		{
 			if (operatorList == null) 
@@ -170,7 +170,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Adds the operator.
 		/// </summary>
 		/// <param name="signature">Signature.</param>
-		public static void AddOperator(string value, Type returnTypeIn, Type lhsTypeIn, Type rhsTypeIn)
+		public static void AddOperator(byte value, byte returnTypeIn, byte lhsTypeIn, byte rhsTypeIn)
 		{
 			OperatorSignature signature = new OperatorSignature (value, returnTypeIn , lhsTypeIn, rhsTypeIn);
 			operatorList.Add (signature);
@@ -180,7 +180,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Adds a left method.
 		/// </summary>
 		/// <param name="signature">Signature.</param>
-		public static void AddLeftMethod(EntMethodEnum methodId, Type returnTypeIn, params Type[] parameterTypesIn)
+		public static void AddLeftMethod(byte methodId, byte returnTypeIn, params byte[] parameterTypesIn)
 		{
 			MethodSignature signature = new MethodSignature(methodId, returnTypeIn, parameterTypesIn);
 			leftMethodList.Add (signature);
@@ -190,7 +190,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Adds a right method.
 		/// </summary>
 		/// <param name="signature">Signature.</param>
-		public static void AddRightMethod(EntMethodEnum methodId, Type returnTypeIn, params Type[] parameterTypesIn)
+		public static void AddRightMethod(byte methodId, byte returnTypeIn, params byte[] parameterTypesIn)
 		{
 			MethodSignature signature = new MethodSignature(methodId, returnTypeIn, parameterTypesIn);
 			rightMethodList.Add(signature);
@@ -200,7 +200,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Adds a read only variable.
 		/// </summary>
 		/// <param name="signature">Signature.</param>
-		public static void AddReadOnlyVariable(EntVariableEnum variableId, Type variableType)
+		public static void AddReadOnlyVariable(byte variableId, byte variableType)
 		{
 			VariableSignature signature = new VariableSignature(variableId, variableType);
 			readOnlyVariableList.Add (signature);
@@ -210,7 +210,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Adds a read write variable.
 		/// </summary>
 		/// <param name="signature">Signature.</param>
-		public static void AddReadWriteVariable(EntVariableEnum variableId, Type variableType)
+		public static void AddReadWriteVariable(byte variableId, byte variableType)
 		{
 			VariableSignature signature = new VariableSignature(variableId, variableType);
 			readWriteVariableList.Add (signature);

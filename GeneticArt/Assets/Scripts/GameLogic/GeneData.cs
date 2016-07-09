@@ -5,10 +5,9 @@
 //------------------------------------------------------------------
 namespace AssemblyCSharp.Scripts.GameLogic
 {
-	using AssemblyCSharp.Scripts.EntLogic.SerializationObjects;
-	using Assets.Scripts.Utilities;
+    using Assets.Scripts.EntLogic.SerializationObjects;
 
-	public class GeneData
+    public class GeneData
 	{
 		private GeneticLogicRoot dna;
 
@@ -17,7 +16,6 @@ namespace AssemblyCSharp.Scripts.GameLogic
 			this.TeamName = teamName;
             this.ParentDNAFilePath = parentDNAFilePath;
             this.DNA = new GeneticLogicRoot(parentDNAFilePath);
-			this.DNA.PossiblyMutate ();
 		}
 
 		public string TeamName { get; private set; }

@@ -3,7 +3,7 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
 	using System;
 	using System.Collections.Generic;
@@ -17,6 +17,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 	/// </summary>
 	public class RootStatement
 	{
+        public const int MaxDepth = 5;
 		public const string Name = "RootStatement";
 
 		// Only one will be populated.
@@ -28,15 +29,15 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// </summary>
 		public RootStatement()
 		{
-			int value = CommonHelperMethods.GetRandomPositiveInt0ToValue (1);
+			int value = CommonHelperMethods.GetRandomPositiveInt0ToValue(1);
 
 			if (value == 0)
 			{
-				this.conditionalLeftStatement = new ConditionalLeftStatement ();
+				this.conditionalLeftStatement = new ConditionalLeftStatement(1);
 			}
 			else
 			{
-				this.leftStatement = new LeftStatement();
+				this.leftStatement = new LeftStatement(1);
 			}
 		}
 
@@ -46,21 +47,24 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <param name="reader">A StreamReader pointed to line where this RootStatement begins.</param>
 		public RootStatement(FileIOManager reader)
 		{
-			string nextLine = reader.ReadNextContentLineAndTrim ();
-			if (CommonHelperMethods.StringStartsWith (nextLine, ConditionalLeftStatement.Name)) 
+			byte nextByte = reader.ReadByte();
+			if (nextByte == StatementTypeEnum.ConditionalLeftStatement)
 			{
-				this.conditionalLeftStatement = new ConditionalLeftStatement (reader);
+				this.conditionalLeftStatement = new ConditionalLeftStatement(reader, 1);
 			} 
-			else if (CommonHelperMethods.StringStartsWith (nextLine, LeftStatement.Name)) 
+			else if (nextByte == StatementTypeEnum.LeftStatement) 
 			{
-				this.leftStatement = new LeftStatement (reader);
+				this.leftStatement = new LeftStatement(reader, 1);
 			} 
 			else 
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine,
+					nextByte,
 					reader,
-					new List<string>() { ConditionalLeftStatement.Name, LeftStatement.Name });
+					new List<byte>() {
+                        StatementTypeEnum.ConditionalLeftStatement,
+                        StatementTypeEnum.LeftStatement
+                    });
 			}
 		}
 
@@ -68,19 +72,18 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public void WriteToDisk(FileIOManager writer, int tabDepth)
+		public void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (RootStatement.Name, tabDepth));
+            writer.WriteByte(StatementTypeEnum.RootStatement);
 
 			if (this.conditionalLeftStatement != null)
 			{
-				this.conditionalLeftStatement.WriteToDisk (writer, tabDepth + 1);
+				this.conditionalLeftStatement.WriteToDisk(writer);
 			} 
 
 			if (this.leftStatement != null)
 			{
-				this.leftStatement.WriteToDisk (writer, tabDepth + 1);
+				this.leftStatement.WriteToDisk (writer);
 			}
 		}
 
@@ -88,7 +91,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		{
 			if (GeneticLogicRoot.RollMutateDice()) 
 			{
-				this.conditionalLeftStatement = new ConditionalLeftStatement();
+				this.conditionalLeftStatement = new ConditionalLeftStatement(1);
 				this.leftStatement = null;
 				return;
 			}
@@ -96,7 +99,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 			if (GeneticLogicRoot.RollMutateDice()) 
 			{
 				this.conditionalLeftStatement = null;
-				this.leftStatement = new LeftStatement();
+				this.leftStatement = new LeftStatement(1);
 				return;
 			}
 
@@ -111,7 +114,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 			}
 		}
 
-		public bool Execute(ref EntBehaviorManager instance)
+		public byte Execute(ref EntBehaviorManager instance)
 		{
 			// Enforce parsing behavior we expect.
 			if (this.conditionalLeftStatement != null &&

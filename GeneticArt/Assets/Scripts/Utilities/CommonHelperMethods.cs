@@ -8,8 +8,8 @@ namespace Assets.Scripts.Utilities
 	using System;
 	using System.Collections.Generic;
 	using System.Text;
+    using System.Threading;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
 	using AssemblyCSharp.Scripts.UnityGameObjects;
 
 	/// <summary>
@@ -24,17 +24,38 @@ namespace Assets.Scripts.Utilities
 		private static System.Random globalRand = new System.Random();
 		private static bool GameIsInitialized = InitializeGame();
 
-		public static double GetRandomDouble0To1()
+        public static bool ExecuteWithTimeLimit(TimeSpan timeSpan, Action codeBlock)
+        {
+            Thread task = new Thread(() => codeBlock());
+            task.Start();
+
+            Thread.Sleep((int)timeSpan.TotalMilliseconds);
+            if (task.IsAlive)
+            {
+                task.Abort();
+                return false;
+            }
+
+            return true;
+        }
+
+        public static double GetRandomDouble0To1()
 		{
 			return globalRand.NextDouble();
 		}
+
+        public static byte GetRandomByte()
+        {
+            byte[] buffer = new byte[1];
+            globalRand.NextBytes(buffer);
+            return buffer[0];
+        }
 
 		public static bool InitializeGame()
 		{
 			if (!GameIsInitialized) 
 			{
 				EntBehaviorManager.RegisterGeneticMembers();
-				GeneticObject.RegisterOperatorsForAllTypes();
 			}
 
 			return true;
@@ -118,25 +139,24 @@ namespace Assets.Scripts.Utilities
 		}
 
 		public static void ThrowStatementParseException(
-			string value,
+			byte value,
 			FileIOManager reader,
-			string acceptableValue)
+			byte acceptableValue)
 		{
-			ThrowStatementParseException (value, reader, new List<string> () { acceptableValue });
+			ThrowStatementParseException (value, reader, new List<byte> () { acceptableValue });
 		}
 
 		public static void ThrowStatementParseException(
-			string value,
+			byte value,
 			FileIOManager reader,
-			IList<string> acceptableValueList)
+			IList<byte> acceptableValueList)
 		{
 			string errorMessage = string.Format (
-				"LineNumber:{0} File:\"{1}\" Value:\"{2}\" AcceptableValues:",
-				reader.LineNumber,
+				"File:\"{0}\" Value:\"{1}\" AcceptableValues:",
 				reader.FileName,
 				value); 
 
-			foreach (string acceptableValue in acceptableValueList) 
+			foreach (byte acceptableValue in acceptableValueList) 
 			{
 				errorMessage += string.Format("\"{0}\" ", acceptableValue);
 			}

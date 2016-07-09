@@ -3,21 +3,18 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
-	
-	using AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration;
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
+    using AssemblyCSharp.Scripts.UnityGameObjects;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
+    using Assets.Scripts.Utilities;
 
-	/// <summary>
-	/// This class represents a method call that conducts significant write actions on the game state.
-	/// For example, "Move" or "Attack neighbor".  It has a return type of void and will end the execution
-	/// of the genetic logic for that frame (adds implicit return statement).
-	/// </summary>
-	internal class LeftMethodCall : RightMethodCall
+    /// <summary>
+    /// This class represents a method call that conducts significant write actions on the game state.
+    /// For example, "Move" or "Attack neighbor".  It has a return type of void and will end the execution
+    /// of the genetic logic for that frame (adds implicit return statement).
+    /// </summary>
+    internal class LeftMethodCall : RightMethodCall
 	{
 		new public const string Name = "LeftMethodCall";
 
@@ -26,8 +23,8 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.LeftMethodCall"/> class.
 		/// </summary>
 		/// <param name="signature">Signature.</param>
-		public LeftMethodCall(MethodSignature signature) : 
-			base(signature)
+		public LeftMethodCall(MethodSignature signature, int depthIn) : 
+			base(signature, depthIn)
 		{
 		}
 
@@ -36,8 +33,8 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.LeftMethodCall"/> class.
 		/// </summary>
 		/// <param name="reader">Reader.</param>
-		public LeftMethodCall (FileIOManager reader) :
-			base(reader)
+		public LeftMethodCall (FileIOManager reader, int depthIn) :
+			base(reader, depthIn)
 		{
 		}
 
@@ -55,18 +52,17 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public override void WriteToDisk(FileIOManager writer, int tabDepth)
+		public override void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (LeftMethodCall.Name, tabDepth));
-			this.WriteToDiskProtected (writer, tabDepth + 1);
+            writer.WriteByte(StatementTypeEnum.LeftMethodCall);
+			this.WriteToDiskProtected(writer);
 		}
 
 		/// <summary>
 		/// Executes the LeftMethod.
 		/// </summary>
 		/// <param name="instance">The instance to execute against.</param>
-		new public bool Execute(ref EntBehaviorManager instance)
+		new public byte Execute(ref EntBehaviorManager instance)
 		{
 			return instance.ExecuteLeftMethod(this.signature, this.EvaluateParameters(ref instance));
 		}

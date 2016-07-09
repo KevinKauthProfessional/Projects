@@ -5,21 +5,17 @@
 //------------------------------------------------------------------
 namespace AssemblyCSharp.Scripts.UnityGameObjects
 {
-	using System;
-	using System.Collections;
-	using System.Collections.Generic;
+    using System;
+    using AssemblyCSharp.Scripts.GameLogic;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
+    using Assets.Scripts.Utilities;
+    using System.Collections.Generic;
+    using UnityEngine;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration;
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.EntLogic.SerializationObjects;
-	using AssemblyCSharp.Scripts.GameLogic;
-	using Assets.Scripts.Utilities;
-	using UnityEngine;
-
-	/// <summary>
-	/// Ent behavior manager.
-	/// </summary>
-	public class EntBehaviorManager : MonoBehaviour 
+    /// <summary>
+    /// Ent behavior manager.
+    /// </summary>
+    public class EntBehaviorManager : MonoBehaviour 
 	{
 		private const int InitialHealth = 100;
 		private const int InitialAttackStrength = 30;
@@ -43,54 +39,65 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 			}
 		}
 
-		public int HealthValue
+		public byte HealthValue
 		{
 			get
 			{
-				return this.Health.Value;
+				return this.Health;
 			}
 		}
 
 		private GeneData genome;
 
 		// Key read only variables
-		private GeneticInt Health = new GeneticInt(InitialHealth);
-		private GeneticInt AttackStrength = new GeneticInt(InitialAttackStrength);
-		private GeneticInt GrowFoodStrength = new GeneticInt(InitialGrowFoodStrength);
+		private byte Health = InitialHealth;
+		private byte AttackStrength = InitialAttackStrength;
+		private byte GrowFoodStrength = InitialGrowFoodStrength;
 
 		// Key read write variables
-		private GeneticInt HelperInt1 = new GeneticInt(0);
-		private GeneticInt HelperInt2 = new GeneticInt(0);
-		private GeneticBool HelperBool1 = GeneticBool.False;
-		private GeneticBool HelperBool2 = GeneticBool.False;
-		private GeneticGridDirection HelperGridDirection1 = new GeneticGridDirection(GridDirection.North);
-		private GeneticGridDirection HelperGridDirection2 = new GeneticGridDirection(GridDirection.North);
+		private byte HelperInt1 = 0;
+		private byte HelperInt2 = 0;
+		private byte HelperBool1 = 0;
+		private byte HelperBool2 = 0;
+		private byte HelperGridDirection1 = (byte)GridDirectionEnum.North;
+		private byte HelperGridDirection2 = (byte)GridDirectionEnum.North;
 
 		/// <summary>
 		/// Registers the genetic members.
 		/// </summary>
 		public static void RegisterGeneticMembers()
 		{
-			RegistrationManager.AddReadOnlyVariable (EntVariableEnum.Health, typeof(GeneticInt));
-			RegistrationManager.AddReadOnlyVariable (EntVariableEnum.AttackStrength, typeof(GeneticInt));
-			RegistrationManager.AddReadOnlyVariable (EntVariableEnum.GrowFoodStrength, typeof(GeneticInt));
+            RegistrationManager.AddOperator(OperatorTypeEnum.And, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticBool);
+            RegistrationManager.AddOperator(OperatorTypeEnum.Equal, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticBool);
+            RegistrationManager.AddOperator(OperatorTypeEnum.Equal, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticGridDirection, GeneticTypeEnum.GeneticGridDirection);
+            RegistrationManager.AddOperator(OperatorTypeEnum.Equal, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticInt, GeneticTypeEnum.GeneticInt);
+            RegistrationManager.AddOperator(OperatorTypeEnum.Minus, GeneticTypeEnum.GeneticInt, GeneticTypeEnum.GeneticInt, GeneticTypeEnum.GeneticInt);
+            RegistrationManager.AddOperator(OperatorTypeEnum.NotEqual, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticBool);
+            RegistrationManager.AddOperator(OperatorTypeEnum.NotEqual, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticGridDirection, GeneticTypeEnum.GeneticGridDirection);
+            RegistrationManager.AddOperator(OperatorTypeEnum.NotEqual, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticInt, GeneticTypeEnum.GeneticInt);
+            RegistrationManager.AddOperator(OperatorTypeEnum.Or, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticBool);
+            RegistrationManager.AddOperator(OperatorTypeEnum.Plus, GeneticTypeEnum.GeneticInt, GeneticTypeEnum.GeneticInt, GeneticTypeEnum.GeneticInt);
 
-			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperInt1, typeof(GeneticInt));
-			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperInt2, typeof(GeneticInt));
-			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperBool1, typeof(GeneticBool));
-			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperBool2, typeof(GeneticBool));
-			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperGridDirection1, typeof(GeneticGridDirection));
-			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperGridDirection2, typeof(GeneticGridDirection));
+            RegistrationManager.AddReadOnlyVariable(EntVariableEnum.Health, GeneticTypeEnum.GeneticInt);
+			RegistrationManager.AddReadOnlyVariable(EntVariableEnum.AttackStrength, GeneticTypeEnum.GeneticInt);
+			RegistrationManager.AddReadOnlyVariable(EntVariableEnum.GrowFoodStrength, GeneticTypeEnum.GeneticInt);
 
-			RegistrationManager.AddLeftMethod (EntMethodEnum.Reproduce, typeof(void), typeof(GeneticGridDirection));
-			RegistrationManager.AddLeftMethod (EntMethodEnum.Move, typeof(void), typeof(GeneticGridDirection));
-			RegistrationManager.AddLeftMethod (EntMethodEnum.Attack, typeof(void), typeof(GeneticGridDirection));
-			RegistrationManager.AddLeftMethod (EntMethodEnum.GrowFood, typeof(void));
+			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperInt1, GeneticTypeEnum.GeneticInt);
+			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperInt2, GeneticTypeEnum.GeneticInt);
+			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperBool1, GeneticTypeEnum.GeneticBool);
+			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperBool2, GeneticTypeEnum.GeneticBool);
+			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperGridDirection1, GeneticTypeEnum.GeneticGridDirection);
+			RegistrationManager.AddReadWriteVariable(EntVariableEnum.HelperGridDirection2, GeneticTypeEnum.GeneticGridDirection);
 
-			RegistrationManager.AddRightMethod (EntMethodEnum.DirectionIsOccupied, typeof(GeneticBool), typeof(GeneticGridDirection));
-			RegistrationManager.AddRightMethod (EntMethodEnum.DirectionIsEnemy, typeof(GeneticBool), typeof(GeneticGridDirection));
-			RegistrationManager.AddRightMethod (EntMethodEnum.DirectionIsFriend, typeof(GeneticBool), typeof(GeneticGridDirection));
-		}
+			RegistrationManager.AddLeftMethod(EntMethodEnum.Reproduce, GeneticTypeEnum.Void, GeneticTypeEnum.GeneticGridDirection);
+			RegistrationManager.AddLeftMethod(EntMethodEnum.Move, GeneticTypeEnum.Void, GeneticTypeEnum.GeneticGridDirection);
+            RegistrationManager.AddLeftMethod(EntMethodEnum.Attack, GeneticTypeEnum.Void, GeneticTypeEnum.GeneticGridDirection);
+            RegistrationManager.AddLeftMethod(EntMethodEnum.GrowFood, GeneticTypeEnum.Void);
+
+			RegistrationManager.AddRightMethod(EntMethodEnum.DirectionIsOccupied, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticGridDirection);
+			RegistrationManager.AddRightMethod(EntMethodEnum.DirectionIsEnemy, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticGridDirection);
+            RegistrationManager.AddRightMethod(EntMethodEnum.DirectionIsFriend, GeneticTypeEnum.GeneticBool, GeneticTypeEnum.GeneticGridDirection);
+        }
 
 		/// <summary>
 		/// Tries the create and place new ent.
@@ -100,18 +107,18 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 		/// <param name="position">Position.</param>
 		/// <param name="teamName">Team name.</param>
 		/// <param name="forcePlace">If set to <c>true</c> force place.</param>
-		public static bool TryCreateAndPlaceNewEnt(
+		public static byte TryCreateAndPlaceNewEnt(
 			Color color,
 			GridPosition position,
 			string teamName,
 			bool forcePlace)
 		{						
-			if (!GameObjectGrid.TryReviveObjectAt(teamName, color, position, forcePlace)) 
+			if (GameObjectGrid.TryReviveObjectAt(teamName, color, position, forcePlace) == 0) 
 			{
-				return false;
+				return 0;
 			}
 
-			return true;
+			return 1;
 		}
 
 		/// <summary>
@@ -132,7 +139,7 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 			}
 
 			var myself = this;
-            if (!this.Genome.DNA.Execute(ref myself))
+            if (this.Genome.DNA.Execute(ref myself) == 0)
             {
                 // If no action taken, kill ent
                 this.TakeDamage(this.HealthValue);
@@ -190,17 +197,17 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 			this.genome = GenePoolManager.GetData(teamName);
 			
 			// Key read only variables
-			this.Health.Value = InitialHealth;
-			this.AttackStrength.Value = InitialAttackStrength;
-			this.GrowFoodStrength.Value = InitialGrowFoodStrength;
+			this.Health = InitialHealth;
+			this.AttackStrength = InitialAttackStrength;
+			this.GrowFoodStrength = InitialGrowFoodStrength;
 			
 			// Key read write variables
-			this.HelperInt1.Value = 0;
-			this.HelperInt2.Value = 0;
-			this.HelperBool1 = GeneticBool.False;
-			this.HelperBool2 = GeneticBool.False;
-			this.HelperGridDirection1.Value = GridDirection.North;
-			this.HelperGridDirection2.Value = GridDirection.North;
+			this.HelperInt1 = 0;
+			this.HelperInt2 = 0;
+			this.HelperBool1 = 0;
+			this.HelperBool2 = 0;
+			this.HelperGridDirection1 = (byte)GridDirectionEnum.North;
+			this.HelperGridDirection2 = (byte)GridDirectionEnum.North;
 		}
 
 		/// <summary>
@@ -230,21 +237,21 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 		/// </summary>
 		/// <param name="signature">Signature.</param>
 		/// <param name="parameters">Parameters.</param>
-		public bool ExecuteLeftMethod(MethodSignature signature, IList<GeneticObject> parameters)
+		public byte ExecuteLeftMethod(MethodSignature signature, IList<byte> parameters)
 		{
 			if (signature.MethodId == EntMethodEnum.Reproduce)
 			{
-				return this.TryReproduce(parameters[0] as GeneticGridDirection);
+				return this.TryReproduce(parameters[0]);
 			}
 
 			if (signature.MethodId == EntMethodEnum.Move)
 			{
-				return this.TryMove(parameters[0] as GeneticGridDirection);
+				return this.TryMove(parameters[0]);
 			}
 
 			if (signature.MethodId == EntMethodEnum.Attack)
 			{
-				return this.TryAttack(parameters[0] as GeneticGridDirection);
+				return this.TryAttack(parameters[0]);
 			}
 
 			if (signature.MethodId == EntMethodEnum.GrowFood)
@@ -255,7 +262,7 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 			LogUtility.LogErrorFormat(
 				"No implementation found for left method: {0}",
 				signature);
-			return false;
+			return 0;
 		}
 
 		/// <summary>
@@ -264,27 +271,29 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 		/// <returns>The right method.</returns>
 		/// <param name="signature">Signature.</param>
 		/// <param name="parameters">Parameters.</param>
-		public GeneticObject ExecuteRightMethod(MethodSignature signature, IList<GeneticObject> parameters)
+		public byte ExecuteRightMethod(
+            MethodSignature signature,
+            IList<byte> parameters)
 		{
 			if (signature.MethodId == EntMethodEnum.DirectionIsOccupied)
 			{
-				return this.DirectionIsOccupied(parameters[0] as GeneticGridDirection);
+				return this.DirectionIsOccupied(parameters[0]);
 			}
 
 			if (signature.MethodId == EntMethodEnum.DirectionIsEnemy)
 			{
-				return this.DirectionIsEnemy(parameters[0] as GeneticGridDirection);
+				return this.DirectionIsEnemy(parameters[0]);
 			}
 
 			if (signature.MethodId == EntMethodEnum.DirectionIsFriend)
 			{
-				return this.DirectionIsFriend(parameters[0] as GeneticGridDirection);
+				return this.DirectionIsFriend(parameters[0]);
 			}
 
 			LogUtility.LogErrorFormat(
 				"No implementation found for right method: {0}",
 				signature);
-			return null;
+			return 0;
 		}
 
 		/// <summary>
@@ -292,41 +301,41 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 		/// </summary>
 		/// <param name="signature">Signature.</param>
 		/// <param name="value">Value.</param>
-		public void WriteToVariable(VariableSignature signature, GeneticObject value)
+		public void WriteToVariable(VariableSignature signature, byte value)
 		{
 			if (signature.VariableId == EntVariableEnum.HelperInt1)
 			{
-				this.HelperInt1 = value as GeneticInt;
+				this.HelperInt1 = value;
 				return;
 			}
 
 			if (signature.VariableId == EntVariableEnum.HelperInt2)
 			{
-				this.HelperInt2 = value as GeneticInt;
+				this.HelperInt2 = value;
 				return;
 			}
 
 			if (signature.VariableId == EntVariableEnum.HelperBool1)
 			{
-				this.HelperBool1 = value as GeneticBool;
+				this.HelperBool1 = value;
 				return;
 			}
 
 			if (signature.VariableId == EntVariableEnum.HelperBool2)
 			{
-				this.HelperBool2 = value as GeneticBool;
+				this.HelperBool2 = value;
 				return;
 			}
 
 			if (signature.VariableId == EntVariableEnum.HelperGridDirection1)
 			{
-				this.HelperGridDirection1 = value as GeneticGridDirection;
+				this.HelperGridDirection1 = value;
 				return;
 			}
 
 			if (signature.VariableId == EntVariableEnum.HelperGridDirection2)
 			{
-				this.HelperGridDirection2 = value as GeneticGridDirection;
+				this.HelperGridDirection2 = value;
 				return;
 			}
 
@@ -340,7 +349,7 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 		/// </summary>
 		/// <returns>The from variable.</returns>
 		/// <param name="signature">Signature.</param>
-		public GeneticObject ReadFromVariable(VariableSignature signature)
+		public byte ReadFromVariable(VariableSignature signature)
 		{
 			if (signature.VariableId == EntVariableEnum.Health)
 			{
@@ -390,63 +399,39 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 			LogUtility.LogErrorFormat(
 				"No implementation found for read only variable: {0}",
 				signature);
-			return null;
+			return 0;
 		}
 
 		/// <summary>
 		/// Takes the damage.
 		/// </summary>
 		/// <param name="amount">Amount.</param>
-		public void TakeDamage(int amount)
-		{
-			if (amount <= 0)
-			{
-				return;
-			}
-
-			try
-			{
-				this.Health.Value = checked(this.Health.Value - amount);
-			}
-			catch (OverflowException)
-			{
-				this.Health.Value = int.MinValue;
-			}
-
-			if (this.Health.Value <= 0) 
-			{
-				GameObjectGrid.KillObject(this.gameObject);
-			}
+		public void TakeDamage(byte amount)
+		{            
+            if (amount >= this.Health)
+            {
+                GameObjectGrid.KillObject(this.gameObject);
+            }
+            else
+            {
+                this.Health = (byte)(this.Health - amount);
+            }
 		}
 
 		/// <summary>
 		/// Adds the health.
 		/// </summary>
 		/// <param name="amount">Amount.</param>
-		public bool TryAddHealth(int amount)
+		public byte TryAddHealth(byte amount)
 		{
-			if (amount <= 0)
-			{
-				return false;
-			}
+            int addResult = this.Health + amount;
+            if (addResult > byte.MaxValue)
+            {
+                return 0;
+            }
 
-			try
-			{
-				this.Health.Value = checked(this.Health.Value + amount);
-			}
-			catch (OverflowException)
-			{
-				this.Health.Value = int.MaxValue;
-				return false;
-			}
-
-			if (this.Health.Value >= StaticController.GlobalMaxInt)
-			{
-				this.Health.Value = StaticController.GlobalMaxInt;
-				return false;
-			}
-
-			return true;
+            this.Health = (byte)addResult;
+            return 1;
 		}
 
 		/// <summary>
@@ -462,10 +447,10 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 				GameObjectGrid.WorldToGridPosition(this.transform.position));
 		}
 
-		private bool TryReproduce(GeneticGridDirection direction)
+		private byte TryReproduce(byte direction)
 		{
 			GridPosition myPosition = GameObjectGrid.WorldToGridPosition(this.transform.position);
-			GridPosition childPosition = myPosition.GetPositionInDirection (direction.Value);
+			GridPosition childPosition = myPosition.GetPositionInDirection(direction);
 
 			return GameObjectGrid.TryReviveObjectAt(
 				this.TeamName,
@@ -474,125 +459,136 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 				false);
 		}
 
-		private bool TryMove(GeneticGridDirection direction)
+		private byte TryMove(byte direction)
 		{
 			return GameObjectGrid.TryMoveObject(
 				this.TeamName,
 				TeamManager.GetTeamColor(this.TeamName),
 				GameObjectGrid.WorldToGridPosition(this.transform.position),
-				direction.Value);
+				direction);
 		}
 
-		private bool TryAttack(GeneticGridDirection direction)
+		private byte TryAttack(byte direction)
 		{
 			GridPosition myPosition = GameObjectGrid.WorldToGridPosition(this.transform.position);
-			GridPosition victimPosition = myPosition.GetPositionInDirection (direction.Value);
+			GridPosition victimPosition = myPosition.GetPositionInDirection(direction);
 
 			if (!GameObjectGrid.PositionIsAlive(victimPosition))
 			{
-				return false;
+				return 0;
 			}
 
 			GameObject victim = GameObjectGrid.GetObjectAt(victimPosition);
 			EntBehaviorManager victimManager = victim.GetComponent<EntBehaviorManager>();
 
-			int damage = (this.AttackStrength.Value * this.Health.Value) / InitialHealth;
-			victimManager.TakeDamage(damage);
+			int damage = (this.AttackStrength * this.Health) / InitialHealth;
+            if (damage > byte.MaxValue)
+            {
+                damage = byte.MaxValue;
+            }
+
+			victimManager.TakeDamage((byte)damage);
 
 			// Will succeed if we killed the victim
-			if (this.TryMove(direction))
+			if (this.TryMove(direction) == 1)
 			{
-				this.TryAddHealth(victimManager.GrowFoodStrength.Value);
+				this.TryAddHealth(victimManager.GrowFoodStrength);
 			}
 
-			if (this.AttackStrength.Value < StaticController.GlobalMaxInt)
+			if (this.AttackStrength < byte.MaxValue)
 			{
-				++this.AttackStrength.Value;
+				++this.AttackStrength;
 			}
 			
-			if (this.GrowFoodStrength.Value > 1)
+			if (this.GrowFoodStrength > byte.MinValue)
 			{
-				--this.GrowFoodStrength.Value;
+				--this.GrowFoodStrength;
 			}
 
-			return true;
+			return 1;
 		}
 
-		private bool TryGrowFood()
+		private byte TryGrowFood()
 		{
-			int foodAmount = (this.GrowFoodStrength.Value * this.Health.Value) / InitialHealth;
+			int foodAmount = (this.GrowFoodStrength * this.Health) / InitialHealth;
+            if (foodAmount > byte.MaxValue)
+            {
+                foodAmount = byte.MaxValue;
+            }
 
-			bool result = this.TryAddHealth (foodAmount);
+			byte result = this.TryAddHealth((byte)foodAmount);
 
-			if (result)
+			if (result == 1)
 			{
-				if (this.GrowFoodStrength.Value < StaticController.GlobalMaxInt)
+				if (this.GrowFoodStrength < byte.MaxValue)
 				{
-					++this.GrowFoodStrength.Value;
+					++this.GrowFoodStrength;
 				}
 
-				if (this.AttackStrength.Value > 1)
+				if (this.AttackStrength > byte.MinValue)
 				{
-					--this.AttackStrength.Value;
+					--this.AttackStrength;
 				}
 			}
 
 			return result;
 		}
 
-		private GeneticBool DirectionIsOccupied(GeneticGridDirection direction)
+		private byte DirectionIsOccupied(byte direction)
 		{
 			GridPosition currentPosition = GameObjectGrid.WorldToGridPosition(this.transform.position);
-			GridPosition testPosition = currentPosition.GetPositionInDirection (direction.Value);
+			GridPosition testPosition = currentPosition.GetPositionInDirection(direction);
 
-			if (GameObjectGrid.PositionIsAlive(testPosition)) 
-			{
-				return GeneticBool.True;
-			}
-
-			return GeneticBool.False;
+            if (GameObjectGrid.PositionIsAlive(testPosition))
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
 		}
 
-		private GeneticBool DirectionIsEnemy(GeneticGridDirection direction)
+		private byte DirectionIsEnemy(byte direction)
 		{
 			GridPosition currentPosition = GameObjectGrid.WorldToGridPosition(this.transform.position);
-			GridPosition testPosition = currentPosition.GetPositionInDirection (direction.Value);
+			GridPosition testPosition = currentPosition.GetPositionInDirection(direction);
 
 			if (!GameObjectGrid.PositionIsAlive(testPosition))
 			{
-				return GeneticBool.False;
+                return 0;
 			}
 
 			GameObject neighbor = GameObjectGrid.GetObjectAt(testPosition);
 			EntBehaviorManager manager = neighbor.GetComponent<EntBehaviorManager> ();
 
-			if (CommonHelperMethods.StringsAreEqual (manager.TeamName, this.TeamName)) 
+			if (CommonHelperMethods.StringsAreEqual(manager.TeamName, this.TeamName)) 
 			{
-				return GeneticBool.False;
+                return 0;
 			}
 
-			return GeneticBool.True;
+            return 1;
 		}
 
-		private GeneticBool DirectionIsFriend(GeneticGridDirection direction)
+		private byte DirectionIsFriend(byte direction)
 		{
 			GridPosition currentPosition = GameObjectGrid.WorldToGridPosition(this.transform.position);
-			GridPosition testPosition = currentPosition.GetPositionInDirection (direction.Value);
+			GridPosition testPosition = currentPosition.GetPositionInDirection (direction);
 
 			if (!GameObjectGrid.PositionIsAlive(testPosition))
 			{
-				return GeneticBool.False;
+                return 0;
 			}
 
 			GameObject neighbor = GameObjectGrid.GetObjectAt(testPosition);			
 			EntBehaviorManager manager = neighbor.GetComponent<EntBehaviorManager> ();
 
-			if (CommonHelperMethods.StringsAreEqual (manager.TeamName, this.TeamName)) 
+			if (CommonHelperMethods.StringsAreEqual(manager.TeamName, this.TeamName)) 
 			{
-				return GeneticBool.True;
+                return 1;
 			}
-			
-			return GeneticBool.False;
+
+            return 0;
 		}
 	}
 }

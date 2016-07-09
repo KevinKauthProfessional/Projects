@@ -3,21 +3,18 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
-	using System.Collections.Generic;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
+    using AssemblyCSharp.Scripts.UnityGameObjects;
+    using Assets.Scripts.Utilities;
+    using System;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration;
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
-
-	/// <summary>
-	/// This class represents a read only operation statement that returns a value 
-	/// to the calling LeftStatement when executed.
-	/// </summary>
-	internal class RightStatementOperation
+    /// <summary>
+    /// This class represents a read only operation statement that returns a value 
+    /// to the calling LeftStatement when executed.
+    /// </summary>
+    internal class RightStatementOperation
 	{
 		public const string Name = "RightStatementOperation";
 
@@ -26,16 +23,20 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		private OperatorSignature operatorSignature;
 		private RightStatement rightHandSide;
 
+        private int depth;
+
 		/// <summary>
 		/// Initializes a new instance of the
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.RightStatementOperation"/> class.
 		/// </summary>
 		/// <param name="returnType">Return type.</param>
-		public RightStatementOperation(OperatorSignature signature)
+		public RightStatementOperation(OperatorSignature signature, int depthIn)
 		{
+            this.depth = depthIn;
+
 			this.operatorSignature = signature;
-			this.leftHandSide = new RightStatement (signature.LhsType);
-			this.rightHandSide = new RightStatement (signature.RhsType);
+			this.leftHandSide = new RightStatement(signature.LhsType, depthIn + 1);
+			this.rightHandSide = new RightStatement(signature.RhsType, depthIn + 1);
 		}
 
 		/// <summary>
@@ -43,37 +44,39 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.RightStatementOperation`1"/> class.
 		/// </summary>
 		/// <param name="reader">Reader.</param>
-		public RightStatementOperation (FileIOManager reader)
+		public RightStatementOperation (FileIOManager reader, int depthIn)
 		{
+            this.depth = depthIn;
+
 			// Parse operator
 			this.operatorSignature = new OperatorSignature (reader);
 
-			// Parse left hand side
-			string nextLine = reader.ReadNextContentLineAndTrim ();
-			if (CommonHelperMethods.StringStartsWith (nextLine, RightStatement.Name)) 
+            // Parse left hand side
+            byte nextByte = reader.ReadByte();
+			if (nextByte == StatementTypeEnum.RightStatement) 
 			{
-				this.leftHandSide = new RightStatement (reader);
+				this.leftHandSide = new RightStatement(reader, depthIn + 1);
 			}
 			else
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine, 
+					nextByte, 
 					reader, 
-					RightStatement.Name);
+					StatementTypeEnum.RightStatement);
 			}
 
-			// Parse right hand side
-			nextLine = reader.ReadNextContentLineAndTrim ();
-			if (CommonHelperMethods.StringStartsWith (nextLine, RightStatement.Name)) 
+            // Parse right hand side
+            nextByte = reader.ReadByte();
+			if (nextByte == StatementTypeEnum.RightStatement) 
 			{
-				this.rightHandSide = new RightStatement (reader);
+				this.rightHandSide = new RightStatement(reader, depthIn + 1);
 			}
 			else
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine, 
+					nextByte, 
 					reader, 
-					RightStatement.Name);
+					StatementTypeEnum.RightStatement);
 			}
 		}
 	
@@ -81,7 +84,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Gets the type of the return.
 		/// </summary>
 		/// <value>The type of the return.</value>
-		public Type ReturnType
+		public byte ReturnType
 		{
 			get
 			{
@@ -90,7 +93,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 					return this.operatorSignature.ReturnType;
 				}
 
-				return null;
+				return 0;
 			}
 		}
 
@@ -108,24 +111,23 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public void WriteToDisk(FileIOManager writer, int tabDepth)
+		public void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (RightStatementOperation.Name, tabDepth));
+            writer.WriteByte(StatementTypeEnum.RightStatementOperation);
 
 			if (this.operatorSignature != null) 
 			{
-				this.operatorSignature.WriteToDisk(writer, tabDepth + 1);
+				this.operatorSignature.WriteToDisk(writer);
 			}
 
 			if (this.leftHandSide != null) 
 			{
-				this.leftHandSide.WriteToDisk(writer, tabDepth + 1);
+				this.leftHandSide.WriteToDisk(writer);
 			}
 
 			if (this.rightHandSide != null) 
 			{
-				this.rightHandSide.WriteToDisk(writer, tabDepth + 1);
+				this.rightHandSide.WriteToDisk(writer);
 			}
 		}
 
@@ -140,21 +142,21 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 				if (RegistrationManager.TrySelectOperatorAtRandom(this.ReturnType, out signature))
 				{
 					this.operatorSignature = signature;
-					this.leftHandSide = new RightStatement(signature.LhsType);
-					this.rightHandSide = new RightStatement(signature.RhsType);
+					this.leftHandSide = new RightStatement(signature.LhsType, this.depth + 1);
+					this.rightHandSide = new RightStatement(signature.RhsType, this.depth + 1);
 					return;
 				}
 			}
 
 			if (GeneticLogicRoot.RollMutateDice ()) 
 			{
-				this.rightHandSide = new RightStatement(this.operatorSignature.RhsType);
+				this.rightHandSide = new RightStatement(this.operatorSignature.RhsType, this.depth + 1);
 				return;
 			}
 
 			if (GeneticLogicRoot.RollMutateDice ()) 
 			{
-				this.leftHandSide = new RightStatement(this.operatorSignature.LhsType);
+				this.leftHandSide = new RightStatement(this.operatorSignature.LhsType, this.depth + 1);
 				return;
 			}
 
@@ -173,13 +175,89 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Evaluate this statement against the specified instance.
 		/// </summary>
 		/// <param name="instance">Instance.</param>
-		public GeneticObject Evaluate(ref EntBehaviorManager instance)
+		public byte Evaluate(ref EntBehaviorManager instance)
 		{
-			GeneticObject leftHandObject = this.leftHandSide.Evaluate (ref instance);
-			GeneticObject rightHandObject = this.rightHandSide.Evaluate (ref instance);
+			byte leftHandObject = this.leftHandSide.Evaluate(ref instance);
+			byte rightHandObject = this.rightHandSide.Evaluate(ref instance);
 
-			return GeneticObject.EvaluateOperator (this.operatorSignature, leftHandObject, rightHandObject);
+            switch (this.operatorSignature.OperatorType)
+            {
+                case OperatorTypeEnum.And:
+                    return this.EvaluateAnd(leftHandObject, rightHandObject);
+
+                case OperatorTypeEnum.Equal:
+                    return this.EvaluateEqual(leftHandObject, rightHandObject);
+
+                case OperatorTypeEnum.Minus:
+                    return this.EvaluateMinus(leftHandObject, rightHandObject);
+
+                case OperatorTypeEnum.NotEqual:
+                    return this.EvaluateNotEqual(leftHandObject, rightHandObject);
+
+                case OperatorTypeEnum.Or:
+                    return this.EvaluateOr(leftHandObject, rightHandObject);
+
+                case OperatorTypeEnum.Plus:
+                    return this.EvaluatePlus(leftHandObject, rightHandObject);
+
+                default:
+                    throw new NotImplementedException(string.Format(
+                        "Unrecognized operator type: {0}", 
+                        this.operatorSignature.OperatorType));
+            }
 		}
+
+        private byte EvaluatePlus(byte lhs, byte rhs)
+        {
+            int result = lhs + rhs;
+
+            if (result > byte.MaxValue)
+            {
+                return byte.MaxValue;
+            }
+
+            return (byte)(result);
+        }
+
+        private byte EvaluateMinus(byte lhs, byte rhs)
+        {
+            if (rhs > lhs)
+            {
+                return byte.MinValue;
+            }
+
+            return (byte)(lhs - rhs);
+        }
+
+        private byte EvaluateAnd(byte lhs, byte rhs)
+        {
+            return (byte)(lhs & rhs);
+        }
+
+        private byte EvaluateOr(byte lhs, byte rhs)
+        {
+            return (byte)(lhs | rhs);
+        }
+
+        private byte EvaluateEqual(byte lhs, byte rhs)
+        {
+            if (lhs == rhs)
+            {
+                return 1;
+            }
+
+            return 0;
+        }
+
+        private byte EvaluateNotEqual(byte lhs, byte rhs)
+        {
+            if (lhs == rhs)
+            {
+                return 0;
+            }
+
+            return 1;
+        }
 	}
 }
 

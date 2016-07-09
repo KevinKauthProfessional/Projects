@@ -10,15 +10,15 @@ namespace AssemblyCSharp.Scripts.UnityGameObjects
 	/// <summary>
 	/// Ent constants.
 	/// </summary>
-	public enum EntMethodEnum
+	public static class EntMethodEnum
 	{
-		Reproduce,
-		Move,
-		Attack,
-		GrowFood,
-		DirectionIsOccupied,
-		DirectionIsEnemy,
-		DirectionIsFriend,
+        public const byte Reproduce = 0;
+        public const byte Move = 1;
+        public const byte Attack = 2;
+        public const byte GrowFood = 3;
+        public const byte DirectionIsOccupied = 4;
+        public const byte DirectionIsEnemy = 5;
+        public const byte DirectionIsFriend = 6;
 	}
 }
 

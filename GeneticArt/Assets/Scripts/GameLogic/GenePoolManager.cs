@@ -71,11 +71,11 @@ namespace AssemblyCSharp.Scripts.GameLogic
 					LogUtility.LogError("GenePoolMamanger has no registered teams");
 				}
 
-				// Update parent files with win loss info
-				UpdateGenePoolFilesUponExtinction ();
+                // Reward survivors with reproduction
+                AddSurvivorsToGenePool();
 
-				// Reward survivors with reproduction
-				AddSurvivorsToGenePool ();
+                // Update parent files with win loss info
+                UpdateGenePoolFilesUponExtinction ();
 
 				// Wipe grid
 				GameObjectGrid.KillAllObjects();
@@ -92,6 +92,7 @@ namespace AssemblyCSharp.Scripts.GameLogic
 
 		private static void AddSurvivorsToGenePool()
 		{
+            int minWinCount = 1;
 			foreach (KeyValuePair<string, GeneData> keyValuePair in teamNameToGeneDataDic) 
 			{
 				string teamName = keyValuePair.Key;
@@ -100,11 +101,15 @@ namespace AssemblyCSharp.Scripts.GameLogic
 				int teamPopCount = TeamManager.GetTeamPopulationCount(teamName);
 				int winCount = 1 + teamPopCount - AverageTeamPopulationCount();
 
-				if (winCount <= 0)
+				if (winCount < minWinCount)
 				{
 					// Losers don't get laid
 					continue;
 				}
+                else
+                {
+                    minWinCount++;
+                }
 
 				// Have to place a cap on number of files, otherwise this would flood the machine
 				if (FileIOManager.GetFileNames().Count < GenePoolDirectoryFileLimit)
@@ -113,7 +118,7 @@ namespace AssemblyCSharp.Scripts.GameLogic
 						"{0} writes DNA to disk",
 						teamName);
 
-					geneData.DNA.WriteToDisk(FileIOManager.GenerateNewDNAFilePath(winCount));
+					geneData.DNA.PossiblyMutateAndWriteToDisk(FileIOManager.GenerateNewDNAFilePath(winCount));
 				}
 				else
 				{
@@ -150,13 +155,17 @@ namespace AssemblyCSharp.Scripts.GameLogic
 				}
 			}
 
-			// Move or delete the parent files as appropriate
+            // Move or delete the parent files as appropriate
+            int winLossTotal = 0;
 			foreach (KeyValuePair<string, int> keyValuePair in fileNameToModificationDic) 
 			{
 				string oldFileName = keyValuePair.Key;
 				int winLossCount = keyValuePair.Value;
 
-				if (winLossCount <= 0)
+                winLossTotal += winLossCount;
+                int winLossAverage = (int)Math.Round((float)winLossTotal / (float)fileNameToModificationDic.Count);
+
+				if (winLossCount < winLossAverage)
 				{
 					// Delete losers
 					LogUtility.LogInfoFormat(
@@ -166,6 +175,11 @@ namespace AssemblyCSharp.Scripts.GameLogic
 					FileIOManager.Delete(oldFileName);
 					continue;
 				}
+                else if (winLossCount >= winLossAverage)
+                {
+                    // Falsely inflate average to break ties
+                    winLossTotal += winLossAverage;
+                }
 
 				// Move winners to new file name
 				string newFileName = FileIOManager.GenerateNewDNAFilePath(winLossCount);

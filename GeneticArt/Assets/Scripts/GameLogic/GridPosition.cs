@@ -58,20 +58,20 @@ namespace AssemblyCSharp.Scripts.GameLogic
 		/// </summary>
 		/// <returns>The position in direction.</returns>
 		/// <param name="direction">Direction.</param>
-		public GridPosition GetPositionInDirection(GridDirection direction)
+		public GridPosition GetPositionInDirection(byte direction)
 		{
 			switch (direction) 
 			{
-			case GridDirection.East:
+			case (byte)GridDirectionEnum.East:
 				return new GridPosition(this.X - 1, this.Z);
 
-			case GridDirection.North:
+			case (byte)GridDirectionEnum.North:
 				return new GridPosition(this.X, this.Z + 1);
 
-			case GridDirection.South:
+			case (byte)GridDirectionEnum.South:
 				return new GridPosition(this.X, this.Z - 1);
 
-			case GridDirection.West:
+			case (byte)GridDirectionEnum.West:
 				return new GridPosition(this.X + 1, this.Z);
 			}
 

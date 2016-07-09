@@ -3,23 +3,23 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
+namespace Assets.Scripts.EntLogic.GeneticMemberRegistration
 {
 	using System;
 	using System.Collections.Generic;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
 	using AssemblyCSharp.Scripts.UnityGameObjects;
 	using Assets.Scripts.Utilities;
+    using Assets.Scripts.EntLogic.SerializationObjects;
 
-	/// <summary>
-	/// A container for metadata related to a method.
-	/// </summary>
-	public class MethodSignature
+    /// <summary>
+    /// A container for metadata related to a method.
+    /// </summary>
+    public class MethodSignature
 	{
-		private Type returnType;
-		private List<Type> parameterTypes = new List<Type>();
-		private EntMethodEnum methodId;
+		private byte returnType;
+		private List<byte> parameterTypes = new List<byte>();
+		private byte methodId;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AssemblyCSharp.Scripts.EntLogic.Attributes.MethodSignature"/> class.
@@ -27,40 +27,30 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// <param name="name">Name.</param>
 		/// <param name="returnTypeIn">Return type in.</param>
 		/// <param name="parameterTypesIn">Parameter types in.</param>
-		public MethodSignature (EntMethodEnum methodIdIn, Type returnTypeIn, params Type[] parameterTypesIn)
+		public MethodSignature(
+            byte methodIdIn,
+            byte returnTypeIn,
+            params byte[] parameterTypesIn)
 		{
 			this.MethodId = methodIdIn;
 			this.returnType = returnTypeIn;
-			this.parameterTypes = new List<Type> (parameterTypesIn);
+			this.parameterTypes = new List<byte> (parameterTypesIn);
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="AssemblyCSharp.Scripts.EntLogic.Attributes.MethodSignature"/> class.
+		/// Initializes a new instance of the <see cref="MethodSignatureBinary"/> class.
 		/// </summary>
 		/// <param name="reader">Reader.</param>
 		public MethodSignature(FileIOManager reader)
 		{
-			string nextLine = reader.ReadNextContentLineAndTrim ();
-			this.MethodId = (EntMethodEnum)Enum.Parse(typeof(EntMethodEnum), nextLine);
+            this.MethodId = reader.ReadByte();
+            this.returnType = reader.ReadByte();
 
-			nextLine = reader.ReadNextContentLineAndTrim ();
-			this.returnType = GeneticObject.ParseType(nextLine);
-			
-			int numberOfParameters;
-			nextLine = reader.ReadNextContentLineAndTrim ();
-			if (!int.TryParse(nextLine, out numberOfParameters))
-			{
-				CommonHelperMethods.ThrowStatementParseException(
-					nextLine,
-					reader,
-					"An integer representing the number of parameters");
-			}
+            int numberOfParameters = (int)reader.ReadByte();
 			
 			for (int i = 0; i < numberOfParameters; ++i)
 			{
-				nextLine = reader.ReadNextContentLineAndTrim ();
-				Type parsedType = GeneticObject.ParseType(nextLine);
-				this.parameterTypes.Add(parsedType);
+				this.parameterTypes.Add(reader.ReadByte());
 			}
 		}
 
@@ -68,7 +58,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Gets the name.
 		/// </summary>
 		/// <value>The name.</value>
-		public EntMethodEnum MethodId 
+		public byte MethodId 
 		{ 
 			get
 			{
@@ -85,7 +75,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Gets the type of the return.
 		/// </summary>
 		/// <value>The type of the return.</value>
-		public Type ReturnType 
+		public byte ReturnType 
 		{
 			get
 			{
@@ -97,11 +87,11 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Gets the parameter types.
 		/// </summary>
 		/// <value>The parameter types.</value>
-		public IList<Type> ParameterTypes
+		public IList<byte> ParameterTypes
 		{
 			get
 			{
-				return new List<Type>(this.parameterTypes);
+				return new List<byte>(this.parameterTypes);
 			}
 		}
 
@@ -123,24 +113,15 @@ namespace AssemblyCSharp.Scripts.EntLogic.GeneticMemberRegistration
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public void WriteToDisk(FileIOManager writer, int tabDepth)
+		public void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine(CommonHelperMethods.PrePendTabs(this.MethodId.ToString(), tabDepth));
-
-			if (this.ReturnType != null)
+            writer.WriteByte(StatementTypeEnum.MethodSignature);
+            writer.WriteByte(this.methodId);
+            writer.WriteByte(this.returnType);
+            writer.WriteByte((byte)this.parameterTypes.Count);
+			foreach (byte parameterType in this.parameterTypes)
 			{
-				writer.WriteLine(CommonHelperMethods.PrePendTabs(this.ReturnType.ToString(), tabDepth));
-			}
-
-			
-			if (this.parameterTypes != null) 
-			{
-				writer.WriteLine(CommonHelperMethods.PrePendTabs(this.parameterTypes.Count.ToString(), tabDepth));
-				foreach (Type parameterType in this.parameterTypes)
-				{
-					writer.WriteLine(CommonHelperMethods.PrePendTabs(parameterType.ToString(), tabDepth + 1));
-				}
+                writer.WriteByte(parameterType);
 			}
 		}
 	}

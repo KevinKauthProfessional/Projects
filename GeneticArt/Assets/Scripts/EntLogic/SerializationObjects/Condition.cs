@@ -3,48 +3,52 @@
 //     Copyright (c) Kevin Joshua Kauth.  All rights reserved.
 // </copyright>
 //------------------------------------------------------------------
-namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
+namespace Assets.Scripts.EntLogic.SerializationObjects
 {
-	using System;
+    using Assets.Scripts.EntLogic.GeneticMemberRegistration;
+    using AssemblyCSharp.Scripts.UnityGameObjects;
+    using Assets.Scripts.Utilities;
+    using System;
 
-	using AssemblyCSharp.Scripts.EntLogic.GeneticTypes;
-	using AssemblyCSharp.Scripts.UnityGameObjects;
-	using Assets.Scripts.Utilities;
-
-	/// <summary>
-	/// This class represents a boolean condition statement.
-	/// </summary>
-	internal class Condition
+    /// <summary>
+    /// This class represents a boolean condition statement.
+    /// </summary>
+    internal class Condition
 	{
 		public const string Name = "Condition";
 
 		private RightStatement rightStatement;
+        private int depth;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.Condition"/> class.
 		/// </summary>
-		public Condition()
+		public Condition(int depthIn)
 		{
-			this.rightStatement = new RightStatement (typeof(GeneticBool));
+            this.depth = depthIn;
+			this.rightStatement = new RightStatement(GeneticTypeEnum.GeneticBool, depthIn + 1);
 		}
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AssemblyCSharp.Scripts.EntLogic.SerializationObjects.Condition"/> class.
 		/// </summary>
 		/// <param name="reader">Reader.</param>
-		public Condition (FileIOManager reader)
+		public Condition (FileIOManager reader, int depthIn)
 		{
-			string nextLine = reader.ReadNextContentLineAndTrim ();
-			if (CommonHelperMethods.StringStartsWith (nextLine, RightStatement.Name)) 
+            this.depth = depthIn;
+
+            byte nextByte = reader.ReadByte();
+        
+			if (nextByte == StatementTypeEnum.RightStatement) 
 			{
-				this.rightStatement = new RightStatement (reader);
+				this.rightStatement = new RightStatement(reader, depthIn + 1);
 			} 
 			else 
 			{
 				CommonHelperMethods.ThrowStatementParseException(
-					nextLine,
+					nextByte,
 					reader,
-					RightStatement.Name);
+					StatementTypeEnum.RightStatement);
 			}
 		}
 
@@ -62,14 +66,13 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Writes to disk.
 		/// </summary>
 		/// <param name="writer">Writer.</param>
-		/// <param name="tabDepth">Tab depth.</param>
-		public void WriteToDisk(FileIOManager writer, int tabDepth)
+		public void WriteToDisk(FileIOManager writer)
 		{
-			writer.WriteLine (CommonHelperMethods.PrePendTabs (Condition.Name, tabDepth));
+            writer.WriteByte(StatementTypeEnum.Condition);
 
 			if (this.rightStatement != null) 
 			{
-				this.rightStatement.WriteToDisk(writer, tabDepth + 1);
+				this.rightStatement.WriteToDisk(writer);
 			}
 		}
 
@@ -80,7 +83,7 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		{
 			if (GeneticLogicRoot.RollMutateDice ()) 
 			{
-				this.rightStatement = new RightStatement(typeof(bool));
+				this.rightStatement = new RightStatement(GeneticTypeEnum.GeneticBool, this.depth + 1);
 				return;
 			}
 
@@ -94,16 +97,9 @@ namespace AssemblyCSharp.Scripts.EntLogic.SerializationObjects
 		/// Evaluates the condition.
 		/// </summary>
 		/// <param name="instance">The instance to evaluate against.</param>
-		public GeneticBool Evaluate(ref EntBehaviorManager instance)
+		public byte Evaluate(ref EntBehaviorManager instance)
 		{
-			GeneticObject evaluatedObject = this.rightStatement.Evaluate (ref instance);
-
-			if (evaluatedObject is GeneticBool) 
-			{
-				return (GeneticBool)evaluatedObject;
-			}
-
-			throw new InvalidOperationException("Condition statement did not evaluate to a GeneticBool");
+			return this.rightStatement.Evaluate(ref instance);
 		}
 	}
 }

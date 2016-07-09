@@ -15,6 +15,7 @@ namespace AssemblyCSharp.Scripts.GameLogic
 	public static class GameObjectGrid
 	{
 		public const string Name = "GameObjectGrid";
+        private const int GridMaxSize = 250;
 		public static int GridWidth;
 		public static int GridHeight;
 		public static float CellScale = 1.0f;
@@ -30,7 +31,7 @@ namespace AssemblyCSharp.Scripts.GameLogic
 			int height = Screen.height;
 			int width = Screen.width;
 
-			while (height > 100 || width > 100)
+			while (height > GridMaxSize || width > GridMaxSize)
 			{
 				height = height / 2;
 				width = width / 2;
@@ -148,23 +149,23 @@ namespace AssemblyCSharp.Scripts.GameLogic
 			return (float)total / (float)count;
 		}
 
-		internal static bool TryMoveObject(
+		internal static byte TryMoveObject(
 			string teamName,
 			Color color,
 			GridPosition start,
-			GridDirection direction)
+			byte direction)
 		{
 			lock (GridChangeLock)
 			{
-				GridPosition destination = start.GetPositionInDirection (direction);
+				GridPosition destination = start.GetPositionInDirection(direction);
 
-				if (TryReviveObjectAt(teamName, color, destination, false)) 
+				if (TryReviveObjectAt(teamName, color, destination, false) == 1) 
 				{
 					KillObjectAt(start);
-					return true;
+					return 1;
 				}
 
-				return false;
+				return 0;
 			}
 		}
 
@@ -210,8 +211,8 @@ namespace AssemblyCSharp.Scripts.GameLogic
 
 				if (StaticController.GlobalShowDeath)
 				{
-					GetObjectAt(position).SetActive(false);
-				}
+                    GetObjectAt(position).SetActive(false);
+                }
 			}
 		}
 
@@ -225,7 +226,7 @@ namespace AssemblyCSharp.Scripts.GameLogic
 			}
 		}
 
-		internal static bool TryReviveObjectAt(
+		internal static byte TryReviveObjectAt(
 			string teamName,
 			Color color,
 			GridPosition position,
@@ -238,15 +239,15 @@ namespace AssemblyCSharp.Scripts.GameLogic
 					if (destroyOccupant)
 					{
 						ReviveObject(position, color, teamName);
-						return true;
+						return 1;
 					}
 					
-					return false;
+					return 0;
 				}
 
 				// Position is dead
 				ReviveObject(position, color, teamName);
-				return true;
+				return 1;
 			}
 		}
 
@@ -277,7 +278,18 @@ namespace AssemblyCSharp.Scripts.GameLogic
 				GameObject ent = GetObjectAt(position);
 				ent.transform.position = GridPositionToWorld(position);
 				aliveGrid[position.X, position.Z] = true;
-				colorGrid[position.X, position.Z] = color;
+                if (colorGrid[position.X, position.Z].HasValue)
+                {
+                    float a = (color.a + colorGrid[position.X, position.Z].Value.a) / 2.0f;
+                    float r = (color.r + colorGrid[position.X, position.Z].Value.r) / 2.0f;
+                    float g = (color.g + colorGrid[position.X, position.Z].Value.g) / 2.0f;
+                    float b = (color.b + colorGrid[position.X, position.Z].Value.b) / 2.0f;
+                    colorGrid[position.X, position.Z] = new Color(r, g, b, a);
+                }
+                else
+                {
+                    colorGrid[position.X, position.Z] = color;
+                }
 
 				EntBehaviorManager manager = ent.GetComponent<EntBehaviorManager>();
 
